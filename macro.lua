@@ -8,12 +8,12 @@ local HttpService = game:GetService("HttpService")
 
 local targetParent = (gethui and gethui()) or CoreGui or Players.LocalPlayer:WaitForChild("PlayerGui")
 
-if targetParent:FindFirstChild("SmartMacroV5") then
-    targetParent.SmartMacroV5:Destroy()
+if targetParent:FindFirstChild("SmartMacroV6") then
+    targetParent.SmartMacroV6:Destroy()
 end
 
 -- ==========================================
--- 1. ANTI-AFK (CHỐNG VĂNG GAME)
+-- 1. ANTI-AFK
 -- ==========================================
 Players.LocalPlayer.Idled:Connect(function()
     VirtualUser:CaptureController()
@@ -21,28 +21,49 @@ Players.LocalPlayer.Idled:Connect(function()
 end)
 
 -- ==========================================
--- 2. TẠO GIAO DIỆN (UI)
+-- 2. GIAO DIỆN & MENU THU GỌN (TOGGLE)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui", targetParent)
-ScreenGui.Name = "SmartMacroV5"
+ScreenGui.Name = "SmartMacroV6"
 ScreenGui.ResetOnSpawn = false
 
+-- Nút thu gọn / mở rộng Menu nổi trên màn hình
+local ToggleMenuBtn = Instance.new("TextButton", ScreenGui)
+ToggleMenuBtn.Size = UDim2.new(0, 45, 0, 45)
+ToggleMenuBtn.Position = UDim2.new(0.02, 0, 0.25, 0)
+ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+ToggleMenuBtn.Text = "📱"
+ToggleMenuBtn.TextSize = 20
+ToggleMenuBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleMenuBtn.Active = true
+ToggleMenuBtn.Draggable = true
+Instance.new("UICorner", ToggleMenuBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", ToggleMenuBtn).Color = Color3.fromRGB(100, 200, 255)
+
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 240, 0, 280)
-MainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
+MainFrame.Size = UDim2.new(0, 240, 0, 325)
+MainFrame.Position = UDim2.new(0.08, 0, 0.25, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.Active = true
 MainFrame.Draggable = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(100, 200, 255)
 
+-- Tính năng ẩn/hiện bảng điều khiển
+local menuVisible = true
+ToggleMenuBtn.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    MainFrame.Visible = menuVisible
+    ToggleMenuBtn.Text = menuVisible and "📱" : "👁️"
+end)
+
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 25)
 Title.BackgroundTransparency = 1
-Title.Text = "🧠 SMART MACRO V5 (FIXED)"
+Title.Text = "🧠 SMART MACRO V6 (MULTI-SLOT)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 11
+Title.TextSize = 10
 
 local StatusText = Instance.new("TextLabel", MainFrame)
 StatusText.Size = UDim2.new(1, 0, 0, 20)
@@ -53,9 +74,23 @@ StatusText.TextColor3 = Color3.fromRGB(150, 255, 150)
 StatusText.Font = Enum.Font.Gotham
 StatusText.TextSize = 10
 
+-- Ô nhập tên Slot / File Macro để quản lý nhiều bản
+local SlotTextBox = Instance.new("TextBox", MainFrame)
+SlotTextBox.Size = UDim2.new(0.9, 0, 0, 26)
+SlotTextBox.Position = UDim2.new(0.05, 0, 0, 48)
+SlotTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+SlotTextBox.PlaceholderText = "Tên Slot Macro (VD: Map1, FarmGold)"
+SlotTextBox.Text = "MacroSlot1"
+SlotTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SlotTextBox.Font = Enum.Font.Gotham
+SlotTextBox.TextSize = 11
+Instance.new("UICorner", SlotTextBox).CornerRadius = UDim.new(0, 5)
+Instance.new("UIStroke", SlotTextBox).Color = Color3.fromRGB(150, 150, 150)
+
+-- Ô nhập chữ nhận diện qua màn
 local TargetTextBox = Instance.new("TextBox", MainFrame)
 TargetTextBox.Size = UDim2.new(0.9, 0, 0, 26)
-TargetTextBox.Position = UDim2.new(0.05, 0, 0, 48)
+TargetTextBox.Position = UDim2.new(0.05, 0, 0, 78)
 TargetTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 TargetTextBox.PlaceholderText = "Chữ cần nhận diện (VD: Replay)"
 TargetTextBox.Text = "Replay"
@@ -78,14 +113,14 @@ local function createMobButton(text, yPos, color)
     return btn
 end
 
-local RecBtn = createMobButton("🔴 BẮT ĐẦU GHI", 80, Color3.fromRGB(180, 50, 50))
-local StopBtn = createMobButton("⏹ DỪNG GHI", 112, Color3.fromRGB(100, 100, 100))
-local ToggleRunBtn = createMobButton("▶ CHẠY MACRO: [TẮT]", 144, Color3.fromRGB(50, 160, 50))
-local SaveBtn = createMobButton("💾 LƯU FILE MACRO", 176, Color3.fromRGB(50, 100, 180))
-local LoadBtn = createMobButton("📂 TẢI FILE MACRO", 208, Color3.fromRGB(100, 50, 180))
+local RecBtn = createMobButton("🔴 BẮT ĐẦU GHI", 110, Color3.fromRGB(180, 50, 50))
+local StopBtn = createMobButton("⏹ DỪNG GHI & LƯU", 142, Color3.fromRGB(100, 100, 100))
+local ToggleRunBtn = createMobButton("▶ CHẠY MACRO: [TẮT]", 174, Color3.fromRGB(50, 160, 50))
+local SaveBtn = createMobButton("💾 LƯU VÀO SLOT", 206, Color3.fromRGB(50, 100, 180))
+local LoadBtn = createMobButton("📂 TẢI TỪ SLOT", 238, Color3.fromRGB(100, 50, 180))
 
 -- ==========================================
--- 3. HỆ THỐNG GIẢ LẬP CHUỘT & KHẮC PHỤC LỆCH TRÁI/PHẢI
+-- 3. FIX TRIỆT ĐỂ LỆCH TÂM NÚT (DÙNG ABSOLUTE SIZE & VECTOR THỰC TẾ)
 -- ==========================================
 local guiInset = GuiService:GetGuiInset()
 local offsetY = guiInset.Y
@@ -107,16 +142,21 @@ local function scanAndClickText(keyword)
         if pcall(function() return v.Text end) and v.Visible then
             if type(v.Text) == "string" and string.find(string.lower(v.Text), string.lower(keyword)) then
                 if v.AbsolutePosition.X > 0 and v.AbsolutePosition.Y > 0 then
-                    local clickTarget = v
-                    -- Nếu TextLabel nằm trong nút bấm, ưu tiên lấy khung chứa nút bên ngoài
-                    if v:IsA("TextLabel") and v.Parent and (v.Parent:IsA("GuiButton") or v.Parent:IsA("ImageButton") or v.Parent:IsA("Frame")) then
-                        clickTarget = v.Parent
+                    local targetObj = v
+                    -- Quét ngược lên tìm đối tượng Button hoặc Frame chứa toàn bộ nút bấm thay vì chỉ bám vào text
+                    local parent = v.Parent
+                    while parent and parent ~= pGui do
+                        if parent:IsA("GuiButton") or parent:IsA("ImageButton") or parent:IsA("TextButton") then
+                            targetObj = parent
+                            break
+                        end
+                        parent = parent.Parent
                     end
                     
-                    local pos = clickTarget.AbsolutePosition
-                    local size = clickTarget.AbsoluteSize
+                    local pos = targetObj.AbsolutePosition
+                    local size = targetObj.AbsoluteSize
                     
-                    -- Tính toán chính xác tâm của phần tử
+                    -- Lấy chính xác tâm tuyệt đối của nút bấm trên màn hình điện thoại
                     local centerX = pos.X + (size.X / 2)
                     local centerY = pos.Y + (size.Y / 2) + offsetY
                     
@@ -130,43 +170,52 @@ local function scanAndClickText(keyword)
 end
 
 -- ==========================================
--- 4. QUẢN LÝ FILE & LOGIC MACRO
+-- 4. HỆ THỐNG QUẢN LÝ MULTI-SLOT FILE
 -- ==========================================
 local recordedActions = {}
 local isRecording = false
 local isMacroRunning = false
 local lastTick = 0
-local fileName = "AnimeDefenders_Macro.json"
+
+local function getFileName()
+    local slotName = SlotTextBox.Text
+    if slotName == "" then slotName = "DefaultMacro" end
+    -- Loại bỏ ký tự đặc biệt tránh lỗi tên file trên một số executor
+    slotName = string.gsub(slotName, "[^%w%_]", "")
+    return "Macro_" .. slotName .. ".json"
+end
 
 local function saveMacroToFile()
     if #recordedActions == 0 then
-        StatusText.Text = "⚠️ Chưa có dữ liệu để lưu!"
+        StatusText.Text = "⚠️ Không có dữ liệu để lưu!"
         return
     end
+    local filename = getFileName()
     local success, encoded = pcall(function()
         return HttpService:JSONEncode(recordedActions)
     end)
     if success and writefile then
-        writefile(fileName, encoded)
-        StatusText.Text = "💾 Đã lưu file thành công!"
+        writefile(filename, encoded)
+        StatusText.Text = "💾 Đã lưu: " .. filename
     else
-        StatusText.Text = "❌ Lỗi lưu file!"
+        StatusText.Text = "❌ Lỗi ghi file trên Executor!"
     end
 end
 
 local function loadMacroFromFile()
-    if readfile and isfile and isfile(fileName) then
+    local filename = getFileName()
+    if readfile and isfile and isfile(filename) then
         local success, decoded = pcall(function()
-            return HttpService:JSONDecode(readfile(fileName))
+            return HttpService:JSONDecode(readfile(filename))
         end)
         if success and type(decoded) == "table" then
             recordedActions = decoded
-            StatusText.Text = "📂 Tải xong (" .. #recordedActions .. " hành động)"
+            StatusText.Text = "📂 Đã tải slot: " .. filename .. " (" .. #recordedActions .. " hành động)"
         else
-            StatusText.Text = "❌ Lỗi đọc định dạng file!"
+            StatusText.Text = "❌ Lỗi đọc cấu trúc file!"
         end
     else
-        StatusText.Text = "⚠️ Không tìm thấy file lưu!"
+        StatusText.Text = "⚠️ Slot không tồn tại!"
     end
 end
 
@@ -192,7 +241,7 @@ end)
 
 RecBtn.MouseButton1Click:Connect(function()
     if isMacroRunning then
-        StatusText.Text = "⚠️ Vui lòng tắt chạy Macro trước khi ghi!"
+        StatusText.Text = "⚠️ Hãy tắt chạy Macro trước!"
         return
     end
     recordedActions = {}
@@ -212,7 +261,7 @@ end)
 
 ToggleRunBtn.MouseButton1Click:Connect(function()
     if isRecording then
-        StatusText.Text = "⚠️ Đang ghi, không thể bật chạy!"
+        StatusText.Text = "⚠️ Đang ghi, không thể chạy!"
         return
     end
     
@@ -224,7 +273,7 @@ ToggleRunBtn.MouseButton1Click:Connect(function()
         task.spawn(function()
             while isMacroRunning do
                 if #recordedActions == 0 then
-                    StatusText.Text = "⚠️ Danh sách trống, hãy tải/ghi macro!"
+                    StatusText.Text = "⚠️ Chưa có dữ liệu! Hãy Tải hoặc Ghi."
                     isMacroRunning = false
                     ToggleRunBtn.Text = "▶ CHẠY MACRO: [TẮT]"
                     ToggleRunBtn.BackgroundColor3 = Color3.fromRGB(50, 160, 50)
