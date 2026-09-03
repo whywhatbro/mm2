@@ -6,16 +6,25 @@ local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 
-local targetParent = (gethui and gethui()) or CoreGui or Players.LocalPlayer:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-if targetParent:FindFirstChild("SmartMacroV6") then
-    targetParent.SmartMacroV6:Destroy()
+-- An toàn hóa đường dẫn UI cho mọi Executor điện thoại
+local targetParent = CoreGui
+pcall(function()
+    if gethui then
+        targetParent = gethui()
+    end
+end)
+
+if targetParent:FindFirstChild("SmartMacroV6_Fix") then
+    targetParent.SmartMacroV6_Fix:Destroy()
 end
 
 -- ==========================================
 -- 1. ANTI-AFK
 -- ==========================================
-Players.LocalPlayer.Idled:Connect(function()
+player.Idled:Connect(function()
     VirtualUser:CaptureController()
     VirtualUser:ClickButton2(Vector2.new())
 end)
@@ -23,9 +32,10 @@ end)
 -- ==========================================
 -- 2. GIAO DIỆN & MENU THU GỌN (TOGGLE)
 -- ==========================================
-local ScreenGui = Instance.new("ScreenGui", targetParent)
-ScreenGui.Name = "SmartMacroV6"
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SmartMacroV6_Fix"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = targetParent
 
 -- Nút thu gọn / mở rộng Menu nổi trên màn hình
 local ToggleMenuBtn = Instance.new("TextButton", ScreenGui)
@@ -49,18 +59,17 @@ MainFrame.Draggable = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(100, 200, 255)
 
--- Tính năng ẩn/hiện bảng điều khiển
 local menuVisible = true
 ToggleMenuBtn.MouseButton1Click:Connect(function()
     menuVisible = not menuVisible
     MainFrame.Visible = menuVisible
-    ToggleMenuBtn.Text = menuVisible and "📱" : "👁️"
+    ToggleMenuBtn.Text = menuVisible and "📱" or "👁️"
 end)
 
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 25)
 Title.BackgroundTransparency = 1
-Title.Text = "🧠 SMART MACRO V6 (MULTI-SLOT)"
+Title.Text = "🧠 SMART MACRO V6.1"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 10
@@ -74,12 +83,12 @@ StatusText.TextColor3 = Color3.fromRGB(150, 255, 150)
 StatusText.Font = Enum.Font.Gotham
 StatusText.TextSize = 10
 
--- Ô nhập tên Slot / File Macro để quản lý nhiều bản
+-- Ô nhập tên Slot / File Macro
 local SlotTextBox = Instance.new("TextBox", MainFrame)
 SlotTextBox.Size = UDim2.new(0.9, 0, 0, 26)
 SlotTextBox.Position = UDim2.new(0.05, 0, 0, 48)
 SlotTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-SlotTextBox.PlaceholderText = "Tên Slot Macro (VD: Map1, FarmGold)"
+SlotTextBox.PlaceholderText = "Tên Slot Macro (VD: Map1)"
 SlotTextBox.Text = "MacroSlot1"
 SlotTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 SlotTextBox.Font = Enum.Font.Gotham
@@ -120,7 +129,7 @@ local SaveBtn = createMobButton("💾 LƯU VÀO SLOT", 206, Color3.fromRGB(50, 1
 local LoadBtn = createMobButton("📂 TẢI TỪ SLOT", 238, Color3.fromRGB(100, 50, 180))
 
 -- ==========================================
--- 3. FIX TRIỆT ĐỂ LỆCH TÂM NÚT (DÙNG ABSOLUTE SIZE & VECTOR THỰC TẾ)
+-- 3. HỆ THỐNG TÂM NÚT & GIẢ LẬP CLICK CHUẨN XÁC
 -- ==========================================
 local guiInset = GuiService:GetGuiInset()
 local offsetY = guiInset.Y
@@ -135,17 +144,15 @@ end
 
 local function scanAndClickText(keyword)
     if keyword == "" then return false end
-    local pGui = Players.LocalPlayer:FindFirstChild("PlayerGui")
-    if not pGui then return false end
+    if not playerGui then return false end
     
-    for _, v in pairs(pGui:GetDescendants()) do
+    for _, v in pairs(playerGui:GetDescendants()) do
         if pcall(function() return v.Text end) and v.Visible then
             if type(v.Text) == "string" and string.find(string.lower(v.Text), string.lower(keyword)) then
                 if v.AbsolutePosition.X > 0 and v.AbsolutePosition.Y > 0 then
                     local targetObj = v
-                    -- Quét ngược lên tìm đối tượng Button hoặc Frame chứa toàn bộ nút bấm thay vì chỉ bám vào text
                     local parent = v.Parent
-                    while parent and parent ~= pGui do
+                    while parent and parent ~= playerGui do
                         if parent:IsA("GuiButton") or parent:IsA("ImageButton") or parent:IsA("TextButton") then
                             targetObj = parent
                             break
@@ -156,7 +163,7 @@ local function scanAndClickText(keyword)
                     local pos = targetObj.AbsolutePosition
                     local size = targetObj.AbsoluteSize
                     
-                    -- Lấy chính xác tâm tuyệt đối của nút bấm trên màn hình điện thoại
+                    -- Lấy đúng tâm tuyệt đối của nút bấm
                     local centerX = pos.X + (size.X / 2)
                     local centerY = pos.Y + (size.Y / 2) + offsetY
                     
@@ -170,7 +177,7 @@ local function scanAndClickText(keyword)
 end
 
 -- ==========================================
--- 4. HỆ THỐNG QUẢN LÝ MULTI-SLOT FILE
+-- 4. QUẢN LÝ FILE MULTI-SLOT
 -- ==========================================
 local recordedActions = {}
 local isRecording = false
@@ -180,7 +187,6 @@ local lastTick = 0
 local function getFileName()
     local slotName = SlotTextBox.Text
     if slotName == "" then slotName = "DefaultMacro" end
-    -- Loại bỏ ký tự đặc biệt tránh lỗi tên file trên một số executor
     slotName = string.gsub(slotName, "[^%w%_]", "")
     return "Macro_" .. slotName .. ".json"
 end
@@ -210,7 +216,7 @@ local function loadMacroFromFile()
         end)
         if success and type(decoded) == "table" then
             recordedActions = decoded
-            StatusText.Text = "📂 Đã tải slot: " .. filename .. " (" .. #recordedActions .. " hành động)"
+            StatusText.Text = "📂 Đã tải: " .. filename .. " (" .. #recordedActions .. " hành động)"
         else
             StatusText.Text = "❌ Lỗi đọc cấu trúc file!"
         end
