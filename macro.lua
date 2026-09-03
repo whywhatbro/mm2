@@ -39,7 +39,7 @@ Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(100, 200, 255)
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 25)
 Title.BackgroundTransparency = 1
-Title.Text = "🧠 SMART MACRO V5 (FILE & TOGGLE)"
+Title.Text = "🧠 SMART MACRO V5 (FIXED)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 11
@@ -85,7 +85,7 @@ local SaveBtn = createMobButton("💾 LƯU FILE MACRO", 176, Color3.fromRGB(50, 
 local LoadBtn = createMobButton("📂 TẢI FILE MACRO", 208, Color3.fromRGB(100, 50, 180))
 
 -- ==========================================
--- 3. HỆ THỐNG GIẢ LẬP CHUỘT & NHẬN DIỆN CHỮ
+-- 3. HỆ THỐNG GIẢ LẬP CHUỘT & KHẮC PHỤC LỆCH TRÁI/PHẢI
 -- ==========================================
 local guiInset = GuiService:GetGuiInset()
 local offsetY = guiInset.Y
@@ -93,7 +93,7 @@ local offsetY = guiInset.Y
 local function simulatedClick(x, y)
     pcall(function()
         VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-        task.wait(0.06)
+        task.wait(0.08)
         VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
     end)
 end
@@ -108,16 +108,18 @@ local function scanAndClickText(keyword)
             if type(v.Text) == "string" and string.find(string.lower(v.Text), string.lower(keyword)) then
                 if v.AbsolutePosition.X > 0 and v.AbsolutePosition.Y > 0 then
                     local clickTarget = v
+                    -- Nếu TextLabel nằm trong nút bấm, ưu tiên lấy khung chứa nút bên ngoài
                     if v:IsA("TextLabel") and v.Parent and (v.Parent:IsA("GuiButton") or v.Parent:IsA("ImageButton") or v.Parent:IsA("Frame")) then
                         clickTarget = v.Parent
                     end
                     
                     local pos = clickTarget.AbsolutePosition
                     local size = clickTarget.AbsoluteSize
+                    
+                    -- Tính toán chính xác tâm của phần tử
                     local centerX = pos.X + (size.X / 2)
                     local centerY = pos.Y + (size.Y / 2) + offsetY
                     
-                    -- Giả lập chuột nhấn trực tiếp vào tâm nút
                     simulatedClick(centerX, centerY)
                     return true
                 end
@@ -136,7 +138,6 @@ local isMacroRunning = false
 local lastTick = 0
 local fileName = "AnimeDefenders_Macro.json"
 
--- Lưu file
 local function saveMacroToFile()
     if #recordedActions == 0 then
         StatusText.Text = "⚠️ Chưa có dữ liệu để lưu!"
@@ -149,11 +150,10 @@ local function saveMacroToFile()
         writefile(fileName, encoded)
         StatusText.Text = "💾 Đã lưu file thành công!"
     else
-        StatusText.Text = "❌ Lỗi lưu file (Executor không hỗ trợ)!"
+        StatusText.Text = "❌ Lỗi lưu file!"
     end
 end
 
--- Tải file
 local function loadMacroFromFile()
     if readfile and isfile and isfile(fileName) then
         local success, decoded = pcall(function()
@@ -207,10 +207,9 @@ StopBtn.MouseButton1Click:Connect(function()
     isRecording = false
     RecBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
     StatusText.Text = "⏹ Đã dừng ghi (" .. #recordedActions .. " điểm)."
-    saveMacroToFile() -- Tự động lưu file khi dừng ghi
+    saveMacroToFile()
 end)
 
--- Nút Bật/Tắt Chạy Macro độc lập
 ToggleRunBtn.MouseButton1Click:Connect(function()
     if isRecording then
         StatusText.Text = "⚠️ Đang ghi, không thể bật chạy!"
@@ -232,7 +231,6 @@ ToggleRunBtn.MouseButton1Click:Connect(function()
                     break
                 end
                 
-                -- Thực hiện chuỗi hành động đã ghi
                 StatusText.Text = "🔁 Đang thực thi dựng lính..."
                 for _, action in ipairs(recordedActions) do
                     if not isMacroRunning then break end
@@ -240,7 +238,6 @@ ToggleRunBtn.MouseButton1Click:Connect(function()
                     simulatedClick(action.X, action.Y)
                 end
                 
-                -- Chờ nhận diện chữ để qua màn
                 if not isMacroRunning then break end
                 local targetWord = TargetTextBox.Text
                 StatusText.Text = "🔍 Đang đợi chữ: " .. targetWord
@@ -249,7 +246,7 @@ ToggleRunBtn.MouseButton1Click:Connect(function()
                     task.wait(2)
                     if scanAndClickText(targetWord) then
                         StatusText.Text = "✅ Đã bấm nút " .. targetWord .. "! Đợi load map..."
-                        task.wait(12) -- Thời gian chờ tải ván mới
+                        task.wait(12)
                         break
                     end
                 end
