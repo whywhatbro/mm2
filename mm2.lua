@@ -1,6 +1,6 @@
--- Macro Recorder dành riêng cho Điện Thoại (Mobile)
 local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local GuiService = game:GetService("GuiService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 
@@ -10,7 +10,6 @@ if targetParent:FindFirstChild("MobileMacroHub") then
     targetParent.MobileMacroHub:Destroy()
 end
 
--- 1. TẠO GIAO DIỆN NỔI GỌN NHẸ TRÊN MÀN HÌNH
 local ScreenGui = Instance.new("ScreenGui", targetParent)
 ScreenGui.Name = "MobileMacroHub"
 ScreenGui.ResetOnSpawn = false
@@ -58,26 +57,32 @@ local RecBtn = createMobButton("🔴 BẮT ĐẦU GHI", 50, Color3.fromRGB(180, 
 local StopBtn = createMobButton("⏹ DỪNG LẠI", 82, Color3.fromRGB(100, 100, 100))
 local PlayBtn = createMobButton("▶ PHÁT LẠI (VÒNG LẶP)", 114, Color3.fromRGB(50, 160, 50))
 
--- 2. HỆ THỐNG GHI NHẬN CHẠM (TOUCH) TRÊN DI ĐỘNG
 local recordedActions = {}
 local isRecording = false
 local isPlaying = false
 local lastTick = 0
 
+-- Lấy độ lệch của thanh công cụ Roblox (Thường là 36px trục Y)
+local guiInset = GuiService:GetGuiInset()
+local offsetY = guiInset.Y
+
 UserInputService.TouchStarted:Connect(function(touch, processed)
     if isRecording then
         local delayTime = tick() - lastTick
         lastTick = tick()
+        
+        -- Cộng thêm độ lệch Topbar vào tọa độ Y để chuột ảo nhấn đúng vị trí
+        local correctedY = touch.Position.Y + offsetY
+        
         table.insert(recordedActions, {
             Delay = delayTime,
             X = touch.Position.X,
-            Y = touch.Position.Y
+            Y = correctedY
         })
-        StatusText.Text = "Đang ghi: " .. #macroData .. " điểm"
+        StatusText.Text = "Đang ghi: " .. #recordedActions .. " điểm"
     end
 end)
 
--- 3. XỬ LÝ SỰ KIỆN NÚT BẤM
 RecBtn.MouseButton1Click:Connect(function()
     if isPlaying then return end
     recordedActions = {}
@@ -108,13 +113,12 @@ PlayBtn.MouseButton1Click:Connect(function()
                 task.wait(action.Delay)
                 
                 pcall(function()
-                    -- Giả lập chạm màn hình điện thoại tại tọa độ X, Y đã ghi
                     VirtualInputManager:SendMouseButtonEvent(action.X, action.Y, 0, true, game, 1)
                     task.wait(0.05)
                     VirtualInputManager:SendMouseButtonEvent(action.X, action.Y, 0, false, game, 1)
                 end)
             end
-            task.wait(1.5) -- Nghỉ 1.5 giây giữa mỗi vòng lặp trận đấu
+            task.wait(1.5)
         end
     end)
 end)
