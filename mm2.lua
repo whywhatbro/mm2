@@ -39,7 +39,7 @@ Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(255, 200, 100)
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 25)
 Title.BackgroundTransparency = 1
-Title.Text = "🧠 SMART MACRO V3"
+Title.Text = "🧠 SMART MACRO V4"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
@@ -53,13 +53,12 @@ StatusText.TextColor3 = Color3.fromRGB(150, 255, 150)
 StatusText.Font = Enum.Font.Gotham
 StatusText.TextSize = 10
 
--- Ô nhập chữ cần nhận diện
 local TargetTextBox = Instance.new("TextBox", MainFrame)
 TargetTextBox.Size = UDim2.new(0.9, 0, 0, 28)
 TargetTextBox.Position = UDim2.new(0.05, 0, 0, 45)
 TargetTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 TargetTextBox.PlaceholderText = "Nhập chữ để qua màn (VD: Replay)"
-TargetTextBox.Text = "Replay" -- Mặc định là Replay
+TargetTextBox.Text = "Replay"
 TargetTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 TargetTextBox.Font = Enum.Font.Gotham
 TargetTextBox.TextSize = 11
@@ -84,7 +83,7 @@ local StopBtn = createMobButton("⏹ DỪNG LẠI", 118, Color3.fromRGB(100, 100
 local PlayBtn = createMobButton("▶ PHÁT LẠI (TỰ ĐỢI REPLAY)", 156, Color3.fromRGB(50, 160, 50))
 
 -- ==========================================
--- 3. HÀM NHẬN DIỆN CHỮ VÀ BẤM NÚT
+-- 3. HÀM NHẬN DIỆN VÀ NHẤN CHÍNH XÁC VÀO TÂM NÚT
 -- ==========================================
 local guiInset = GuiService:GetGuiInset()
 local offsetY = guiInset.Y
@@ -95,23 +94,27 @@ local function scanAndClickText(keyword)
     if not pGui then return false end
     
     for _, v in pairs(pGui:GetDescendants()) do
-        -- Quét các thành phần giao diện có chữ và đang hiện trên màn hình
         if pcall(function() return v.Text end) and v.Visible then
             if type(v.Text) == "string" and string.find(string.lower(v.Text), string.lower(keyword)) then
                 if v.AbsolutePosition.X > 0 and v.AbsolutePosition.Y > 0 then
                     
-                    -- Lấy tâm của nút đó để click
+                    -- Tìm khung chứa nút (Ưu tiên lấy đối tượng cha nếu là TextLabel nằm trong Button)
                     local clickTarget = v
-                    if v:IsA("TextLabel") and v.Parent and (v.Parent:IsA("GuiButton") or v.Parent:IsA("ImageButton")) then
+                    if v:IsA("TextLabel") and v.Parent and (v.Parent:IsA("GuiButton") or v.Parent:IsA("ImageButton") or v.Parent:IsA("Frame")) then
                         clickTarget = v.Parent
                     end
                     
-                    local x = clickTarget.AbsolutePosition.X + (clickTarget.AbsoluteSize.X / 2)
-                    local y = clickTarget.AbsolutePosition.Y + (clickTarget.AbsoluteSize.Y / 2) + offsetY
+                    -- TÍNH TOÁN TÂM CHÍNH XÁC CỦA NÚT
+                    local pos = clickTarget.AbsolutePosition
+                    local size = clickTarget.AbsoluteSize
                     
-                    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-                    task.wait(0.1)
-                    VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+                    local centerX = pos.X + (size.X / 2)
+                    local centerY = pos.Y + (size.Y / 2) + offsetY
+                    
+                    -- Giả lập nhấn chuột chính xác vào tâm
+                    VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 1)
+                    task.wait(0.05)
+                    VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 1)
                     return true
                 end
             end
@@ -132,7 +135,6 @@ UserInputService.TouchStarted:Connect(function(touch, processed)
     if isRecording then
         local touchPos = touch.Position
         
-        -- BỘ LỌC CHỐNG CHẠM NHẦM VÀO MENU
         local menuPos = MainFrame.AbsolutePosition
         local menuSize = MainFrame.AbsoluteSize
         local minX = menuPos.X
@@ -140,7 +142,6 @@ UserInputService.TouchStarted:Connect(function(touch, processed)
         local minY = menuPos.Y + offsetY
         local maxY = menuPos.Y + offsetY + menuSize.Y
         
-        -- Nếu ngón tay chạm vào Menu -> Không ghi lại điểm chạm đó
         if touchPos.X >= minX and touchPos.X <= maxX and touchPos.Y >= minY and touchPos.Y <= maxY then
             return 
         end
@@ -179,7 +180,6 @@ PlayBtn.MouseButton1Click:Connect(function()
 
     task.spawn(function()
         while isPlaying do
-            -- BƯỚC 1: Xây lính theo Macro đã ghi
             StatusText.Text = "🔁 Đang xây đội hình..."
             for _, action in ipairs(recordedActions) do
                 if not isPlaying then break end
@@ -192,17 +192,16 @@ PlayBtn.MouseButton1Click:Connect(function()
                 end)
             end
             
-            -- BƯỚC 2: Chờ chữ xuất hiện (Nhận diện Replay/Next)
             if not isPlaying then break end
             local targetWord = TargetTextBox.Text
             StatusText.Text = "🔍 Đang đợi chữ: " .. targetWord
             
             while isPlaying do
-                task.wait(2) -- Quét màn hình mỗi 2 giây
+                task.wait(2)
                 if scanAndClickText(targetWord) then
-                    StatusText.Text = "✅ Đã bấm " .. targetWord .. "! Đợi load map..."
-                    task.wait(12) -- Nghỉ 12 giây cho game tải bản đồ mới hoàn tất
-                    break -- Thoát vòng chờ, lặp lại vòng mới
+                    StatusText.Text = "✅ Đã bấm vào tâm nút " .. targetWord .. "!"
+                    task.wait(12) -- Chờ load map mới
+                    break
                 end
             end
         end
